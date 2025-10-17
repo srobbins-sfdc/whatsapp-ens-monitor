@@ -1,0 +1,16 @@
+# Dependencies
+/node_modules
+
+# Environment variables
+.env
+
+# Salesforce Credentials
+/salesforce-creds
+
+# Logs
+*.log
+npm-debug.log*
+
+# OS files
+.DS_Store
+

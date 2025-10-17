@@ -1,0 +1,31 @@
+{
+  "name": "heroku-ens-handler",
+  "version": "1.0.0",
+  "description": "Handles Salesforce Marketing Cloud ENS webhooks and creates WhatsApp_Interaction__c records in Salesforce.",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js",
+    "dev": "node index.js"
+  },
+  "engines": {
+    "node": "18.x || 20.x || 22.x || 24.x",
+    "npm": ">=9.x"
+  },
+  "dependencies": {
+    "axios": "^1.6.0",
+    "dotenv": "^16.3.1",
+    "express": "^4.18.2",
+    "jsforce": "^1.11.1",
+    "jsonwebtoken": "^9.0.2"
+  },
+  "keywords": [
+    "salesforce",
+    "marketing-cloud",
+    "ens",
+    "webhook",
+    "whatsapp"
+  ],
+  "author": "",
+  "license": "ISC"
+}
+
