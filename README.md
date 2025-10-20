@@ -7,34 +7,47 @@ A production-ready Node.js application that receives Event Notification Service 
 - **Receives** Marketing Cloud ENS webhook events (WhatsApp messages: Inbound, Sent, Delivered, Read, Failed)
 - **Validates** request signatures using HMAC-SHA256 for security
 - **Processes** events asynchronously to prevent timeouts
-- **Creates** Salesforce records for inbound WhatsApp messages
+- **Creates** Salesforce records for inbound WhatsApp messages *(optional - see Monitoring-Only Mode)*
 - **Monitors** all events in real-time via a beautiful web dashboard
 - **Stores** last 100 events in memory for live monitoring
 
+## 🔀 Two Deployment Modes
+
+### Full Mode (Salesforce Integration)
+- Visualizes **all** ENS events in the dashboard
+- **Automatically creates Salesforce records** for inbound messages
+- Requires Salesforce Connected App and credentials setup
+
+### Monitoring-Only Mode
+- Visualizes **all** ENS events in the dashboard
+- **Does not** send any data to Salesforce
+- Skips Salesforce setup entirely (Steps 1-2)
+- Perfect for testing, demos, or simple event monitoring
+
+**To enable Monitoring-Only Mode:** Simply skip Steps 1-2 and don't set the Salesforce environment variables in Step 4.
+
 ## 📋 Prerequisites
 
-Before deploying this app, you'll need:
-
-### Accounts & Access
-- ✅ Salesforce org with API access
+### Required for All Modes
 - ✅ Salesforce Marketing Cloud account with WhatsApp messaging enabled
-- ✅ Heroku account (free tier works for testing)
 - ✅ Marketing Cloud API credentials (Client ID and Secret)
-
-### Local Development Tools
+- ✅ Heroku account (free tier works for testing)
 - ✅ Node.js 18+ and npm
 - ✅ Git
 - ✅ [Heroku CLI](https://devcenter.heroku.com/articles/heroku-cli)
-- ✅ OpenSSL (for certificate generation)
 
-### Salesforce Setup
+### Required Only for Full Mode (Salesforce Integration)
+- ✅ Salesforce org with API access
+- ✅ OpenSSL (for certificate generation)
 - ✅ Custom object: `WhatsApp_Interaction__c` with fields:
   - `Message_ID__c` (Text, 255)
   - `Raw_Payload__c` (Long Text Area, 131,072)
 
 ## 🚀 Deployment Guide
 
-### Step 1: Generate SSL Certificates
+> **💡 For Monitoring-Only Mode:** Skip Steps 1-2 and go directly to Step 3. In Step 4, only set `ENS_SIGNATURE_KEY` (leave Salesforce variables unset).
+
+### Step 1: Generate SSL Certificates (Full Mode Only)
 
 Generate certificates for Salesforce JWT authentication:
 
@@ -60,7 +73,7 @@ cd ..
 
 ---
 
-### Step 2: Salesforce Connected App Configuration
+### Step 2: Salesforce Connected App Configuration (Full Mode Only)
 
 **🔵 IN SALESFORCE UI:**
 
@@ -156,6 +169,7 @@ cp .env.example .env
 
 **Edit `.env` file with your values:**
 
+**For Full Mode (Salesforce Integration):**
 ```bash
 # Update these with your actual values:
 SF_INSTANCE_URL=https://YOUR-DOMAIN.my.salesforce.com
@@ -167,6 +181,14 @@ PRIVATE_KEY="-----BEGIN RSA PRIVATE KEY-----\\nYOUR_KEY_CONTENT\\n-----END RSA P
 
 # Leave empty for now (will get from Marketing Cloud)
 ENS_SIGNATURE_KEY=
+```
+
+**For Monitoring-Only Mode:**
+```bash
+# Only this variable is required:
+ENS_SIGNATURE_KEY=
+
+# Leave Salesforce variables commented out or unset
 ```
 
 **To format PRIVATE_KEY correctly:**
@@ -190,14 +212,27 @@ heroku create your-unique-app-name
 
 # Set Node.js buildpack
 heroku buildpacks:set heroku/nodejs
+```
 
-# Set environment variables
+**Set environment variables based on your deployment mode:**
+
+**For Full Mode (Salesforce Integration):**
+```bash
 heroku config:set SF_INSTANCE_URL=https://YOUR-DOMAIN.my.salesforce.com
 heroku config:set SF_CONSUMER_KEY=YOUR_CONSUMER_KEY
 heroku config:set SF_USERNAME=integration.ens@yourcompany.com.INSTANCE
 heroku config:set PRIVATE_KEY="$(cat salesforce-creds/server.key)"
 heroku config:set ENS_SIGNATURE_KEY=""
+```
 
+**For Monitoring-Only Mode:**
+```bash
+# Only set the ENS signature key (will be updated later)
+heroku config:set ENS_SIGNATURE_KEY=""
+```
+
+**Deploy the app:**
+```bash
 # Initialize git (if not already done)
 git init
 git add .
@@ -211,6 +246,8 @@ heroku logs --tail
 ```
 
 **Your app is now live at:** `https://your-unique-app-name.herokuapp.com`
+
+> **Check the logs** - you should see either "✅ Salesforce integration enabled" or "⚠️ Salesforce integration disabled - running in monitoring-only mode"
 
 ---
 
@@ -334,9 +371,17 @@ Open: `https://your-unique-app-name.herokuapp.com/dashboard`
 Send a WhatsApp message to your Marketing Cloud WhatsApp number
 
 #### Verify Success
+
+**For All Modes:**
 1. **Check Dashboard** - Event should appear within 2-3 seconds
-2. **Check Heroku Logs** - Should see "Successfully created Salesforce record"
-3. **Check Salesforce** - New `WhatsApp_Interaction__c` record created
+2. **Check Heroku Logs** - Should see event processed
+
+**For Full Mode Only:**
+3. **Check Heroku Logs** - Should see "Successfully created Salesforce record: [ID]"
+4. **Check Salesforce** - New `WhatsApp_Interaction__c` record created
+
+**For Monitoring-Only Mode:**
+3. **Check Heroku Logs** - Should see "Event type... logged (Salesforce integration disabled)"
 
 ---
 
@@ -348,14 +393,21 @@ Send a WhatsApp message to your Marketing Cloud WhatsApp number
 - 🎯 Filter by event type (All, Inbound, Sent, Delivered, Read, Failed)
 - 📱 Event tiles with key details
 - 🔍 Expandable full JSON payload view
-- ✅ Status indicators (Webhook Received → Processed → Sent to Salesforce)
+- ✅ Status indicators (Webhook Received → Processed → Sent to Salesforce*)
+
+\* *Status indicator only shows "Sent to Salesforce" in Full Mode*
 
 ### Event Types
+
+**In Full Mode (Salesforce Integration Enabled):**
 - **Inbound Messages** (green) → Creates Salesforce record
 - **Sent** (blue) → Logged only
 - **Delivered** (green) → Logged only
 - **Read** (filled green) → Logged only
 - **Failed** (red) → Logged only with reason
+
+**In Monitoring-Only Mode:**
+- **All event types** → Logged and displayed in dashboard only (no Salesforce records created)
 
 ---
 
@@ -363,14 +415,16 @@ Send a WhatsApp message to your Marketing Cloud WhatsApp number
 
 ### Environment Variables
 
-| Variable | Description | Example |
-|----------|-------------|---------|
-| `SF_INSTANCE_URL` | Your Salesforce instance URL | `https://yourcompany.my.salesforce.com` |
-| `SF_CONSUMER_KEY` | Connected App Consumer Key | `3MVG9...` |
-| `SF_USERNAME` | Integration user username | `integration@company.com` |
-| `PRIVATE_KEY` | Private key with `\\n` for newlines | `-----BEGIN RSA...` |
-| `ENS_SIGNATURE_KEY` | From ENS callback registration | `abc123...` |
-| `PORT` | Server port (Heroku sets automatically) | `3000` |
+| Variable | Required | Description | Example |
+|----------|----------|-------------|---------|
+| `ENS_SIGNATURE_KEY` | **Yes** | From ENS callback registration | `abc123...` |
+| `SF_INSTANCE_URL` | Optional* | Your Salesforce instance URL | `https://yourcompany.my.salesforce.com` |
+| `SF_CONSUMER_KEY` | Optional* | Connected App Consumer Key | `3MVG9...` |
+| `SF_USERNAME` | Optional* | Integration user username | `integration@company.com` |
+| `PRIVATE_KEY` | Optional* | Private key with `\\n` for newlines | `-----BEGIN RSA...` |
+| `PORT` | No | Server port (Heroku sets automatically) | `3000` |
+
+\* *Required only for Full Mode (Salesforce Integration). All four Salesforce variables must be set to enable the integration.*
 
 ### API Endpoints
 

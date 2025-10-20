@@ -17,6 +17,16 @@ const {
     ENS_SIGNATURE_KEY
 } = process.env;
 
+// Check if Salesforce integration is enabled
+const SALESFORCE_ENABLED = SF_INSTANCE_URL && SF_CONSUMER_KEY && SF_USERNAME && PRIVATE_KEY;
+
+if (SALESFORCE_ENABLED) {
+    console.log('✅ Salesforce integration enabled');
+} else {
+    console.log('⚠️  Salesforce integration disabled - running in monitoring-only mode');
+    console.log('   Events will be logged and displayed in the dashboard but not sent to Salesforce');
+}
+
 // --- In-Memory Event Storage ---
 const recentEvents = [];
 const MAX_EVENTS = 100;
@@ -509,7 +519,7 @@ async function processPayload(payload) {
         
         try {
             // Check if this is an inbound message that should be sent to Salesforce
-            if (eventType === 'EngagementEvents.OttMobileOriginated') {
+            if (eventType === 'EngagementEvents.OttMobileOriginated' && SALESFORCE_ENABLED) {
                 // Inbound message - create Salesforce record
                 const conn = await sfConnectionCache.getConnection();
                 
@@ -529,7 +539,8 @@ async function processPayload(payload) {
                 }
             } else {
                 // Other event types - log only, don't send to Salesforce
-                console.log(`Event type ${eventType} logged (not sent to Salesforce)`);
+                const reason = !SALESFORCE_ENABLED ? '(Salesforce integration disabled)' : '(not sent to Salesforce)';
+                console.log(`Event type ${eventType} logged ${reason}`);
                 storeEvent(event, 'logged_only');
             }
 

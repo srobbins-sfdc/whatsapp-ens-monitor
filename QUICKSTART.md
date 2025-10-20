@@ -2,21 +2,34 @@
 
 Get up and running in 30 minutes! ⚡
 
+## 🔀 Choose Your Mode
+
+### Full Mode (30 min)
+Complete Salesforce integration - visualize events **and** create Salesforce records
+
+### Monitoring-Only Mode (15 min)
+Just visualize events in the dashboard - **skip Salesforce setup** (Steps 1-2)
+
+---
+
 ## Prerequisites Checklist
 
-Before starting, ensure you have:
-
-- [ ] Salesforce org access (with System Administrator or equivalent)
+**Required for All Modes:**
 - [ ] Marketing Cloud account with WhatsApp enabled
 - [ ] Heroku account
 - [ ] Node.js 18+ installed
 - [ ] Git installed
 - [ ] Heroku CLI installed
+
+**Required Only for Full Mode:**
+- [ ] Salesforce org access (with System Administrator or equivalent)
 - [ ] OpenSSL installed (usually pre-installed on Mac/Linux)
 
 ## 10-Minute Setup
 
-### 1️⃣ Generate Certificates (2 min)
+> **💡 For Monitoring-Only Mode:** Skip Steps 1-2 and go directly to Step 3
+
+### 1️⃣ Generate Certificates (2 min) - **Full Mode Only**
 
 ```bash
 mkdir salesforce-creds && cd salesforce-creds
@@ -26,7 +39,7 @@ openssl x509 -req -sha256 -days 365 -in server.csr -signkey server.key -out serv
 cd ..
 ```
 
-### 2️⃣ Salesforce Setup (10 min)
+### 2️⃣ Salesforce Setup (10 min) - **Full Mode Only**
 
 **Create Connected App:**
 - Setup → App Manager → New Connected App
@@ -68,15 +81,27 @@ npm install
 heroku login
 heroku create your-app-name
 heroku buildpacks:set heroku/nodejs
+```
 
-# Set environment variables
+**Set environment variables based on your mode:**
+
+**For Full Mode:**
+```bash
 heroku config:set SF_INSTANCE_URL=https://YOURDOMAIN.my.salesforce.com
 heroku config:set SF_CONSUMER_KEY=YOUR_CONSUMER_KEY
 heroku config:set SF_USERNAME=integration.ens@yourcompany.com.prod
 heroku config:set PRIVATE_KEY="$(cat salesforce-creds/server.key)"
 heroku config:set ENS_SIGNATURE_KEY=""
+```
 
-# Deploy
+**For Monitoring-Only Mode:**
+```bash
+# Only set the ENS signature key (will be updated in step 4)
+heroku config:set ENS_SIGNATURE_KEY=""
+```
+
+**Deploy:**
+```bash
 git init
 git add .
 git commit -m "Initial deployment"
@@ -147,7 +172,7 @@ Body:
 1. Open dashboard: `https://your-app-name.herokuapp.com/dashboard`
 2. Send WhatsApp test message via Marketing Cloud
 3. Watch event appear in dashboard ✨
-4. Check Salesforce for new `WhatsApp_Interaction__c` record
+4. **Full Mode Only:** Check Salesforce for new `WhatsApp_Interaction__c` record
 
 ## Common Issues & Quick Fixes
 
